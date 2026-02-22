@@ -4,13 +4,16 @@ import os
 from pathlib import Path
 
 
-def _read_app_version():
+def _resolve_repo_root():
     spec_file = globals().get("__file__")
     if spec_file:
-        repo_root = Path(spec_file).resolve().parent.parent
-    else:
-        # PyInstaller may execute spec files without defining __file__.
-        repo_root = Path.cwd()
+        return Path(spec_file).resolve().parent.parent
+    # PyInstaller may execute spec files without defining __file__.
+    return Path.cwd()
+
+
+def _read_app_version():
+    repo_root = _resolve_repo_root()
     version_file = repo_root / "src" / "version.py"
     namespace = {}
     with open(version_file, "r", encoding="utf-8") as handle:
@@ -19,7 +22,9 @@ def _read_app_version():
 
 
 APP_VERSION = os.environ.get("APP_VERSION", _read_app_version())
-APP_BUILD_NAME = f"AccelerationLoggerGUI-{APP_VERSION}"
+APP_BUILD_NAME = f"Acceleration Logger v{APP_VERSION}"
+APP_ICON = _resolve_repo_root() / "Build" / "app.ico"
+APP_ICON = str(APP_ICON) if APP_ICON.exists() else None
 
 a = Analysis(
     ['../src/AccelerationLoggerGUI.py'],
@@ -49,6 +54,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
+    icon=APP_ICON,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -59,6 +65,6 @@ exe = EXE(
 app = BUNDLE(
     exe,
     name=f'{APP_BUILD_NAME}.app',
-    icon=None,
+    icon=APP_ICON,
     bundle_identifier=None,
 )

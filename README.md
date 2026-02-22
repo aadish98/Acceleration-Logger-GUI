@@ -42,7 +42,7 @@ python -m pip install -r requirements.txt
    - `py -m pip install pyinstaller`
 5. Build the app:
    - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
-6. Run the generated versioned executable from `dist/` (for example `AccelerationLoggerGUI-<version>.exe`).
+6. Run the generated versioned executable from `dist/` (for example `Acceleration Logger v<version>.exe`).
 
 To update later:
 1. In GitHub Desktop, click `Fetch origin`, then `Pull origin`.
@@ -59,7 +59,7 @@ To update later:
    - `python -m pip install pyinstaller`
 4. Build the app bundle:
    - `./scripts/build-macos.sh`
-5. Open the generated versioned app in `dist/` (for example `AccelerationLoggerGUI-<version>.app`).
+5. Open the generated versioned app in `dist/` (for example `Acceleration Logger v<version>.app`).
 
 To update later:
 1. Pull the latest repository changes.

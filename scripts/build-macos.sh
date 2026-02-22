@@ -9,4 +9,4 @@ export APP_VERSION
 
 python -m PyInstaller "Build/AccelerationLoggerGUI.spec"
 
-echo "Built macOS artifact in dist/: AccelerationLoggerGUI-${APP_VERSION}.app"
+echo "Built macOS artifact in dist/: Acceleration Logger v${APP_VERSION}.app"

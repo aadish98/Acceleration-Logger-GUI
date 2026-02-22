@@ -9,4 +9,4 @@ $env:APP_VERSION = $version
 
 py -m PyInstaller "Build/AccelerationLoggerGUI.spec"
 
-Write-Host "Built Windows artifact in dist/: AccelerationLoggerGUI-$version.exe"
+Write-Host "Built Windows artifact in dist/: Acceleration Logger v$version.exe"
