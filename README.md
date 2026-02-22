@@ -100,14 +100,6 @@ Reference setup photos:
 
 1. Titos I, Juginovic A, Vaccaro A, Nambara K, Gorelik P, Mazor O, Rogulja D. A gut-secreted peptide suppresses arousability from sleep. Cell. 2023 Mar 30;186(7):1382-1397.e21. doi:10.1016/j.cell.2023.02.022. PMID:36958331. https://www.sciencedirect.com/science/article/pii/S0092867423001654?via%3Dihub
 
-## Contributing
-
-Contributions are welcome. Please:
-
-1. Open an issue describing the bug or feature request.
-2. Keep pull requests focused and small.
-3. Include clear reproduction steps for bug fixes.
-
 ## Reporting Issues
 
 When filing an issue, include:
