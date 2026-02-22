@@ -1,5 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
+from pathlib import Path
+
+
+def _read_app_version():
+    version_file = Path(__file__).resolve().parent.parent / "src" / "version.py"
+    namespace = {}
+    with open(version_file, "r", encoding="utf-8") as handle:
+        exec(handle.read(), namespace)
+    return namespace["APP_VERSION"]
+
+
+APP_VERSION = os.environ.get("APP_VERSION", _read_app_version())
+APP_BUILD_NAME = f"AccelerationLoggerGUI-{APP_VERSION}"
 
 a = Analysis(
     ['../src/AccelerationLoggerGUI.py'],
@@ -22,7 +36,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='AccelerationLoggerGUI',
+    name=APP_BUILD_NAME,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -38,7 +52,7 @@ exe = EXE(
 )
 app = BUNDLE(
     exe,
-    name='AccelerationLoggerGUI.app',
+    name=f'{APP_BUILD_NAME}.app',
     icon=None,
     bundle_identifier=None,
 )

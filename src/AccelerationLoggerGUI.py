@@ -7,6 +7,8 @@ from collections import deque
 import serial
 import serial.tools.list_ports
 
+from version import APP_DISPLAY_NAME, APP_VERSION
+
 def find_arduino_port():
     """
     Returns the first serial port whose description / VID-PID
@@ -24,7 +26,13 @@ def find_arduino_port():
 class AccelLoggerGUI:
     def __init__(self, master):
         self.master = master
-        master.title("Acceleration Logger")
+        master.title(APP_DISPLAY_NAME)
+
+        menubar = tk.Menu(master)
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="About", command=self._show_about_dialog)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        master.config(menu=menubar)
 
         # Input fields for metadata
         tk.Label(master, text="Platform Name (i.e. Zantiks):").grid(row=0, column=0, padx=5, pady=5, sticky='e')
@@ -179,6 +187,12 @@ class AccelLoggerGUI:
             return abs(float(a) - float(b)) > tol
         except Exception:
             return str(a) != str(b)
+
+    def _show_about_dialog(self):
+        messagebox.showinfo(
+            "About",
+            f"{APP_DISPLAY_NAME}\nVersion: {APP_VERSION}",
+        )
 
     # -------------------------- Manifest helpers --------------------------
     def _write_manifest_atomic(self):

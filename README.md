@@ -14,6 +14,7 @@ A desktop Tkinter GUI for logging Arduino accelerometer-style analog streams to 
 ## Repository Layout
 
 - `src/AccelerationLoggerGUI.py`: main desktop application.
+- `src/version.py`: single source of truth for app name and version.
 - `firmware/ACCL_logger_Arduino.ino`: Arduino sketch that outputs `x,y,z` CSV lines.
 - `Build/AccelerationLoggerGUI.spec`: PyInstaller spec file.
 
@@ -55,10 +56,27 @@ PyInstaller builds should be produced on Windows for reliable `.exe` output:
 
 ```bash
 python -m pip install pyinstaller
-pyinstaller Build/AccelerationLoggerGUI.spec
+./scripts/build-windows.ps1
 ```
 
-The built executable will be in `dist/`.
+The built executable will be in `dist/` and includes the app version in its filename.
+
+## Build a macOS App Bundle
+
+PyInstaller app bundles should be produced on macOS:
+
+```bash
+python -m pip install pyinstaller
+./scripts/build-macos.sh
+```
+
+The built app bundle will be in `dist/` and includes the app version in its filename.
+
+## Version Bump Workflow
+
+1. Update `APP_VERSION` in `src/version.py`.
+2. Build with `scripts/build-windows.ps1` (Windows) or `scripts/build-macos.sh` (macOS).
+3. Confirm the GUI title shows `Acceleration Logger vX.Y.Z` and the artifact name matches that version.
 
 ## Hardware Notes
 
