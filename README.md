@@ -69,12 +69,21 @@ The built executable will be in `dist/`.
 
 ### Arduino Micro + ADXL335 Rig (Quick Wiring)
 
-- Wire the ADXL335 breakout to the Arduino Micro with a shared ground, sensor power, and three analog signal lines (X/Y/Z) routed to the three analog inputs used by the sketch.
+- Pin connections used in this setup:
+  - `ADXL335 VCC` -> `Arduino Micro +3V3`
+  - `ADXL335 GND` -> `Arduino Micro GND`
+  - `ADXL335 Xout` -> `Arduino Micro A5` (`ap1` in firmware)
+  - `ADXL335 Yout` -> `Arduino Micro A4` (`ap2` in firmware)
+  - `ADXL335 Zout` -> `Arduino Micro A3` (`ap3` in firmware)
 - Keep wiring short/secure and mechanically anchor both boards so vibration does not introduce intermittent electrical contact.
 - The ADXL335 was mounted using 3M `300LSE` double-sided tape for secure attachment to the test surface.
 - Leave optional breakout pins (for example, self-test) disconnected during standard logging unless your board documentation says otherwise.
 - Validate setup before long runs by checking that serial output remains stable at rest and changes predictably when each axis is tilted.
 - The current firmware defines the analog input mapping in `ap1`, `ap2`, and `ap3` inside `firmware/ACCL_logger_Arduino.ino`; adjust those constants if you rewire.
+
+Arduino Micro pin schema:
+
+![Arduino Micro pin schema](docs/images/arduino-micro-pin-schema.png)
 
 Reference setup photos:
 
