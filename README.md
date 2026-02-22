@@ -70,7 +70,7 @@ The built executable will be in `dist/`.
 ### Arduino Micro + ADXL335 Rig (Quick Wiring)
 
 - Pin connections used in this setup:
-  - `ADXL335 VCC` -> `Arduino Micro +3V3`
+  - `ADXL335 Vin` -> `Arduino Micro +3V3`
   - `ADXL335 GND` -> `Arduino Micro GND`
   - `ADXL335 Xout` -> `Arduino Micro A5` (`ap1` in firmware)
   - `ADXL335 Yout` -> `Arduino Micro A4` (`ap2` in firmware)
