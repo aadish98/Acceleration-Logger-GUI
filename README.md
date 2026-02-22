@@ -36,17 +36,18 @@ python -m pip install -r requirements.txt
 
 1. Install GitHub Desktop and sign in.
 2. In GitHub Desktop, clone this repository to your laptop.
-3. Open a PowerShell terminal in the repo folder.
+3. In GitHub Desktop, use `Repository` -> `Open in Command Prompt`.
 4. Install dependencies:
    - `py -m pip install -r requirements.txt`
    - `py -m pip install pyinstaller`
 5. Build the app:
-   - `.\scripts\build-windows.ps1`
+   - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
 6. Run the generated versioned executable from `dist/` (for example `AccelerationLoggerGUI-<version>.exe`).
 
 To update later:
-1. In GitHub Desktop, click `Fetch origin` then `Pull origin`.
-2. Re-run `.\scripts\build-windows.ps1`.
+1. In GitHub Desktop, click `Fetch origin`, then `Pull origin`.
+2. Open Command Prompt in the repo and re-run:
+   - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
 3. Launch the newest versioned executable in `dist/`.
 
 ## Installing / Updating on macOS
