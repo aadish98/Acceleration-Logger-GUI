@@ -28,6 +28,7 @@ class AccelLoggerGUI:
     def __init__(self, master):
         self.master = master
         master.title(APP_DISPLAY_NAME)
+        master.minsize(860, 540)
         self._forbidden_input_chars = {":", "*", "?", "<", ">", "|", "\\", "/"}
         self._input_max_lengths = {
             "platform": 64,
@@ -41,55 +42,82 @@ class AccelLoggerGUI:
         menubar.add_cascade(label="Help", menu=help_menu)
         master.config(menu=menubar)
 
-        # Input fields for metadata
-        tk.Label(master, text="Platform Name (i.e. Zantiks):").grid(row=0, column=0, padx=5, pady=5, sticky='e')
-        self.platform_entry = tk.Entry(master)
-        self.platform_entry.grid(row=0, column=1, padx=5, pady=5)
+        style = ttk.Style(master)
+        try:
+            style.theme_use(style.theme_use())
+        except Exception:
+            pass
+
+        master.grid_rowconfigure(0, weight=1)
+        master.grid_columnconfigure(0, weight=1)
+
+        main_frame = ttk.Frame(master, padding=(14, 12))
+        main_frame.grid(row=0, column=0, sticky="nsew")
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_rowconfigure(2, weight=1)
+
+        setup_frame = ttk.LabelFrame(main_frame, text="Run Setup", padding=(12, 10))
+        setup_frame.grid(row=0, column=0, sticky="ew")
+        setup_frame.grid_columnconfigure(1, weight=1)
+
+        ttk.Label(setup_frame, text="Platform name").grid(row=0, column=0, padx=(0, 10), pady=4, sticky="w")
+        self.platform_entry = ttk.Entry(setup_frame, width=44)
+        self.platform_entry.grid(row=0, column=1, padx=0, pady=4, sticky="ew")
         self.platform_entry.config(
             validate="key",
             validatecommand=(master.register(self._validate_entry_input), "%P", "platform"),
         )
 
-        tk.Label(master, text="Experiment setting (i.e. R85C10AD x R64H06DBD; G4 P150, P400, P2000:").grid(row=2, column=0, padx=5, pady=5, sticky='e')
-        self.speed_entry = tk.Entry(master)
-        self.speed_entry.grid(row=2, column=1, padx=5, pady=5)
+        ttk.Label(setup_frame, text="Experiment setting").grid(row=1, column=0, padx=(0, 10), pady=4, sticky="w")
+        self.speed_entry = ttk.Entry(setup_frame, width=44)
+        self.speed_entry.grid(row=1, column=1, padx=0, pady=4, sticky="ew")
         self.speed_entry.config(
             validate="key",
             validatecommand=(master.register(self._validate_entry_input), "%P", "speed"),
         )
 
-        tk.Label(master, text="Logging Duration (hours):").grid(row=3, column=0, padx=5, pady=5, sticky='e')
-        self.duration_entry = tk.Entry(master)
-        self.duration_entry.grid(row=3, column=1, padx=5, pady=5)
+        ttk.Label(setup_frame, text="Logging duration (hours)").grid(row=2, column=0, padx=(0, 10), pady=4, sticky="w")
+        self.duration_entry = ttk.Entry(setup_frame, width=20)
+        self.duration_entry.grid(row=2, column=1, padx=0, pady=4, sticky="w")
         self.duration_entry.config(
             validate="key",
             validatecommand=(master.register(self._validate_entry_input), "%P", "duration"),
         )
 
-        # Buttons for starting and stopping logging
-        self.start_button = tk.Button(master, text="Start Logging", command=self.start_logging)
-        self.start_button.grid(row=4, column=0, padx=5, pady=10)
-        self.stop_button = tk.Button(master, text="Stop Logging", command=self.stop_logging, state=tk.DISABLED)
-        self.stop_button.grid(row=4, column=1, padx=5, pady=10)
+        controls_frame = ttk.Frame(setup_frame)
+        controls_frame.grid(row=3, column=0, columnspan=2, pady=(8, 2), sticky="ew")
+        controls_frame.grid_columnconfigure(0, weight=1)
 
-        # Progress and metrics
-        tk.Label(master, text="Progress (elapsed / target):").grid(row=5, column=0, padx=5, pady=2, sticky='e')
+        self.start_button = ttk.Button(controls_frame, text="Start Logging", command=self.start_logging)
+        self.start_button.grid(row=0, column=0, padx=(0, 6), sticky="w")
+        self.stop_button = ttk.Button(controls_frame, text="Stop Logging", command=self.stop_logging, state=tk.DISABLED)
+        self.stop_button.grid(row=0, column=1, padx=(6, 0), sticky="w")
+
+        status_frame = ttk.LabelFrame(main_frame, text="Status", padding=(12, 10))
+        status_frame.grid(row=1, column=0, pady=(10, 0), sticky="ew")
+        status_frame.grid_columnconfigure(1, weight=1)
+
+        ttk.Label(status_frame, text="Progress (elapsed / target)").grid(row=0, column=0, padx=(0, 10), pady=2, sticky="w")
         self.progress_var = tk.DoubleVar(value=0)
-        self.progress_bar = ttk.Progressbar(master, orient='horizontal', mode='determinate', variable=self.progress_var)
-        self.progress_bar.grid(row=5, column=1, padx=5, pady=2, sticky='we')
-        master.grid_columnconfigure(1, weight=1)
+        self.progress_bar = ttk.Progressbar(status_frame, orient='horizontal', mode='determinate', variable=self.progress_var)
+        self.progress_bar.grid(row=0, column=1, pady=2, sticky='ew')
 
-        self.elapsed_label = tk.Label(master, text="Elapsed: 0s of 0s")
-        self.elapsed_label.grid(row=6, column=0, columnspan=2, sticky='w', padx=5)
+        self.elapsed_label = ttk.Label(status_frame, text="Elapsed: 0s of 0s")
+        self.elapsed_label.grid(row=1, column=0, columnspan=2, sticky='w', pady=(4, 1))
 
-        self.rate_label = tk.Label(master, text="Rate: 0.0 Hz | Samples: 0 | Dropped: 0 | Reconnects: 0")
-        self.rate_label.grid(row=7, column=0, columnspan=2, sticky='w', padx=5)
+        self.rate_label = ttk.Label(status_frame, text="Rate: 0.0 Hz | Samples: 0 | Dropped: 0 | Reconnects: 0")
+        self.rate_label.grid(row=2, column=0, columnspan=2, sticky='w')
 
-        # Live preview (last N samples)
-        tk.Label(master, text="Live Preview (latest 50):").grid(row=8, column=0, columnspan=2, sticky='w', padx=5)
-        self.preview_list = tk.Listbox(master, height=8)
-        self.preview_list.grid(row=9, column=0, columnspan=2, sticky='nsew', padx=5, pady=5)
-        master.grid_rowconfigure(9, weight=1)
+        preview_frame = ttk.LabelFrame(main_frame, text="Live Preview (latest 50)", padding=(12, 10))
+        preview_frame.grid(row=2, column=0, pady=(10, 0), sticky="nsew")
+        preview_frame.grid_columnconfigure(0, weight=1)
+        preview_frame.grid_rowconfigure(0, weight=1)
+
+        self.preview_list = tk.Listbox(preview_frame, height=10)
+        self.preview_list.grid(row=0, column=0, sticky='nsew')
+        preview_scroll = ttk.Scrollbar(preview_frame, orient="vertical", command=self.preview_list.yview)
+        preview_scroll.grid(row=0, column=1, sticky="ns", padx=(8, 0))
+        self.preview_list.configure(yscrollcommand=preview_scroll.set)
 
         # Logging thread and control flag
         self.logging_thread = None
