@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.python-version
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.spec.bak
+*.egg-info/
+!Build/
+!Build/*.spec
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
