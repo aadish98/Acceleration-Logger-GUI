@@ -64,6 +64,26 @@ The built executable will be in `dist/`.
 
 - Default port detection matches common Arduino/CH340 descriptors and VID/PID hints.
 - Ensure your board is connected and readable before starting a long run.
+- Hardware used: Arduino Micro + ADXL335 accelerometer.
+- Reference publication: see [1].
+
+### Arduino Micro + ADXL335 Rig (Quick Wiring)
+
+- Wire the ADXL335 breakout to the Arduino Micro with a shared ground, sensor power, and three analog signal lines (X/Y/Z) routed to the three analog inputs used by the sketch.
+- Keep wiring short/secure and mechanically anchor both boards so vibration does not introduce intermittent electrical contact.
+- The ADXL335 was mounted using 3M `300LSE` double-sided tape for secure attachment to the test surface.
+- Leave optional breakout pins (for example, self-test) disconnected during standard logging unless your board documentation says otherwise.
+- Validate setup before long runs by checking that serial output remains stable at rest and changes predictably when each axis is tilted.
+- The current firmware defines the analog input mapping in `ap1`, `ap2`, and `ap3` inside `firmware/ACCL_logger_Arduino.ino`; adjust those constants if you rewire.
+
+Reference setup photos:
+
+![Arduino Micro wiring reference](docs/images/arduino-micro-wiring.png)
+![ADXL335 mounted on plate](docs/images/adxl335-mounted-setup.png)
+
+## References
+
+1. Titos I, Juginovic A, Vaccaro A, Nambara K, Gorelik P, Mazor O, Rogulja D. A gut-secreted peptide suppresses arousability from sleep. Cell. 2023 Mar 30;186(7):1382-1397.e21. doi:10.1016/j.cell.2023.02.022. PMID:36958331. https://www.sciencedirect.com/science/article/pii/S0092867423001654?via%3Dihub
 
 ## Contributing
 
