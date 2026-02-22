@@ -4,27 +4,15 @@ A desktop Tkinter GUI for logging Arduino accelerometer-style analog streams to 
 
 ## Features
 
-- Simple UI to capture platform, temperature, speed setting, and duration.
+- Metadata-driven logging UI (platform, temperature, speed, duration) with live preview and run stats.
 - Auto-detects common Arduino serial ports and logs at 115200 baud.
-- Writes CSV parts with local timestamps and run metadata (`manifest.json`).
-- Optional gzip compression of rotated CSV files.
-- Live preview, elapsed/progress display, and basic logging stats.
-- Optional temperature schedule editor for long runs.
-
-## Repository Layout
-
-- `src/AccelerationLoggerGUI.py`: main desktop application.
-- `src/version.py`: single source of truth for app name and version.
-- `firmware/ACCL_logger_Arduino.ino`: Arduino sketch that outputs `x,y,z` CSV lines.
-- `Build/AccelerationLoggerGUI.spec`: PyInstaller spec file.
+- Rotating CSV output with manifest tracking; optional gzip compression and temperature schedule support.
 
 ## Data Format and Output
 
-- Expected serial input line format: `x,y,z` (integer values).
-- Output root folder on desktop: `~/Desktop/ARDUINO_AcclLogs/<run_id>/`.
-- Each run includes:
-  - One or more rotated CSV part files (hourly/date/temperature-change based).
-  - `manifest.json` with run metadata, parts, checksums, and event history.
+- Serial input format: `x,y,z` integers.
+- Output folder: `~/Desktop/ARDUINO_AcclLogs/<run_id>/`.
+- Each run writes rotated CSV part files plus a `manifest.json` containing metadata, checksums, and events.
 
 ## Requirements
 
@@ -38,45 +26,44 @@ Install dependencies:
 python -m pip install -r requirements.txt
 ```
 
-## Run Locally
-
-```bash
-python src/AccelerationLoggerGUI.py
-```
-
 ## Arduino Firmware
 
 1. Open `firmware/ACCL_logger_Arduino.ino` in Arduino IDE.
 2. Upload to your board.
 3. Confirm it streams comma-separated values at 115200 baud.
 
-## Build a Windows Executable
+## Installing / Updating on Windows (GitHub Desktop)
 
-PyInstaller builds should be produced on Windows for reliable `.exe` output:
+1. Install GitHub Desktop and sign in.
+2. In GitHub Desktop, clone this repository to your laptop.
+3. Open a PowerShell terminal in the repo folder.
+4. Install dependencies:
+   - `py -m pip install -r requirements.txt`
+   - `py -m pip install pyinstaller`
+5. Build the app:
+   - `.\scripts\build-windows.ps1`
+6. Run the generated versioned executable from `dist/` (for example `AccelerationLoggerGUI-<version>.exe`).
 
-```bash
-python -m pip install pyinstaller
-./scripts/build-windows.ps1
-```
+To update later:
+1. In GitHub Desktop, click `Fetch origin` then `Pull origin`.
+2. Re-run `.\scripts\build-windows.ps1`.
+3. Launch the newest versioned executable in `dist/`.
 
-The built executable will be in `dist/` and includes the app version in its filename.
+## Installing / Updating on macOS
 
-## Build a macOS App Bundle
+1. Clone this repository to your Mac (GitHub Desktop or `git clone`).
+2. Open Terminal in the repo folder.
+3. Install dependencies:
+   - `python -m pip install -r requirements.txt`
+   - `python -m pip install pyinstaller`
+4. Build the app bundle:
+   - `./scripts/build-macos.sh`
+5. Open the generated versioned app in `dist/` (for example `AccelerationLoggerGUI-<version>.app`).
 
-PyInstaller app bundles should be produced on macOS:
-
-```bash
-python -m pip install pyinstaller
-./scripts/build-macos.sh
-```
-
-The built app bundle will be in `dist/` and includes the app version in its filename.
-
-## Version Bump Workflow
-
-1. Update `APP_VERSION` in `src/version.py`.
-2. Build with `scripts/build-windows.ps1` (Windows) or `scripts/build-macos.sh` (macOS).
-3. Confirm the GUI title shows `Acceleration Logger vX.Y.Z` and the artifact name matches that version.
+To update later:
+1. Pull the latest repository changes.
+2. Re-run `./scripts/build-macos.sh`.
+3. Open the newest versioned app in `dist/`.
 
 ## Hardware Notes
 
