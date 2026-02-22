@@ -5,7 +5,13 @@ from pathlib import Path
 
 
 def _read_app_version():
-    version_file = Path(__file__).resolve().parent.parent / "src" / "version.py"
+    spec_file = globals().get("__file__")
+    if spec_file:
+        repo_root = Path(spec_file).resolve().parent.parent
+    else:
+        # PyInstaller may execute spec files without defining __file__.
+        repo_root = Path.cwd()
+    version_file = repo_root / "src" / "version.py"
     namespace = {}
     with open(version_file, "r", encoding="utf-8") as handle:
         exec(handle.read(), namespace)
