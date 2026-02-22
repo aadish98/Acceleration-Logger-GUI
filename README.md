@@ -4,9 +4,9 @@ A desktop Tkinter GUI for logging Arduino accelerometer-style analog streams to 
 
 ## Features
 
-- Metadata-driven logging UI (platform, temperature, speed, duration) with live preview and run stats.
+- Metadata-driven logging UI (platform, experiment setting, duration) with live preview and run stats.
 - Auto-detects common Arduino serial ports and logs at 115200 baud.
-- Rotating CSV output with manifest tracking; optional gzip compression and temperature schedule support.
+- Rotating CSV output with manifest tracking and gzip compression.
 
 ## Data Format and Output
 

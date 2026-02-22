@@ -31,7 +31,6 @@ class AccelLoggerGUI:
         self._forbidden_input_chars = {":", "*", "?", "<", ">", "|", "\\", "/"}
         self._input_max_lengths = {
             "platform": 64,
-            "temperature": 16,
             "speed": 128,
             "duration": 16,
         }
@@ -51,15 +50,7 @@ class AccelLoggerGUI:
             validatecommand=(master.register(self._validate_entry_input), "%P", "platform"),
         )
 
-        tk.Label(master, text="Temperature (C, i.e. 21):").grid(row=1, column=0, padx=5, pady=5, sticky='e')
-        self.temp_entry = tk.Entry(master)
-        self.temp_entry.grid(row=1, column=1, padx=5, pady=5)
-        self.temp_entry.config(
-            validate="key",
-            validatecommand=(master.register(self._validate_entry_input), "%P", "temperature"),
-        )
-
-        tk.Label(master, text="Experiment setting (i.e. R85C10AD x R64H06DBD P150, P400, P2000):").grid(row=2, column=0, padx=5, pady=5, sticky='e')
+        tk.Label(master, text="Experiment setting (i.e. R85C10AD x R64H06DBD; G4 P150, P400, P2000:").grid(row=2, column=0, padx=5, pady=5, sticky='e')
         self.speed_entry = tk.Entry(master)
         self.speed_entry.grid(row=2, column=1, padx=5, pady=5)
         self.speed_entry.config(
@@ -304,7 +295,7 @@ class AccelLoggerGUI:
             pass
 
     # -------------------------- File rotation --------------------------
-    def _open_new_part(self, run_dir, platform_name, temperature, speed):
+    def _open_new_part(self, run_dir, platform_name, speed):
         # Close existing part first
         self._close_current_part()
 
@@ -333,7 +324,6 @@ class AccelLoggerGUI:
             "rows": 0,
             "sha256": None,
             "compressed": False,
-            "temperature": str(temperature),
         })
         self._write_manifest_atomic()
 
@@ -432,23 +422,15 @@ class AccelLoggerGUI:
     def start_logging(self):
         platform = self.platform_entry.get().strip()
         speed = self.speed_entry.get().strip()
-        temperature = self.temp_entry.get().strip()
         for field_name, label, value in (
             ("platform", "Platform Name", platform),
             ("speed", "Experiment setting", speed),
-            ("temperature", "Temperature", temperature),
             ("duration", "Logging Duration", self.duration_entry.get().strip()),
         ):
             validation_error = self._validate_field_constraints(value, field_name, label)
             if validation_error:
                 messagebox.showerror("Invalid Input", validation_error)
                 return
-        # Validate numeric temperature
-        try:
-            float(temperature)
-        except ValueError:
-            messagebox.showerror("Invalid Input", "Temperature must be a number (°C).")
-            return
         try:
             duration_hours = float(self.duration_entry.get().strip())
             if not math.isfinite(duration_hours) or duration_hours < 0:
@@ -458,7 +440,7 @@ class AccelLoggerGUI:
             messagebox.showerror("Invalid Input", "Duration must be a number in hours (0 for continuous).")
             return
 
-        if not platform or not speed or not temperature:
+        if not platform or not speed:
             messagebox.showerror("Missing Information", "Please fill in all fields.")
             return
 
@@ -467,7 +449,7 @@ class AccelLoggerGUI:
 
         # Reset stop flag and start logging in a background thread
         self.stop_logging_flag = False
-        self.logging_thread = threading.Thread(target=self.log_data, args=(platform, speed, duration, temperature), daemon=True)
+        self.logging_thread = threading.Thread(target=self.log_data, args=(platform, speed, duration), daemon=True)
         self.logging_thread.start()
 
         # Kick off UI updater
@@ -490,7 +472,7 @@ class AccelLoggerGUI:
         # Cancel UI updater
         self._cancel_ui_update_job()
 
-    def log_data(self, platform, speed, duration, temperature):
+    def log_data(self, platform, speed, duration):
         # Open the serial port (auto-detected) and set up run folders/manifest
         try:
             auto_port = find_arduino_port()
@@ -521,7 +503,6 @@ class AccelLoggerGUI:
         self._manifest = {
             "platform": platform,
             "speed": speed,
-            "temperature": temperature,
             "start_iso": start_dt.isoformat(),
             "target_duration_s": int(round(duration)),
             "compress_gzip": True,
@@ -549,7 +530,7 @@ class AccelLoggerGUI:
         self._current_date_str = datetime.now().strftime("%m%d%Y")
         self._part_index = 0
 
-        self._open_new_part(run_dir, platform, temperature, speed)
+        self._open_new_part(run_dir, platform, speed)
 
         try:
             sample_index = 0
@@ -615,7 +596,7 @@ class AccelLoggerGUI:
                         need_new_part = True
 
                     if need_new_part:
-                        self._open_new_part(run_dir, platform, temperature, speed)
+                        self._open_new_part(run_dir, platform, speed)
 
                     ts_local = datetime.now().astimezone().isoformat()
                     # Write row with local timestamp
