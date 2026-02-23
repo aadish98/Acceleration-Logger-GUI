@@ -47,6 +47,8 @@ class AccelLoggerGUI:
             style.theme_use(style.theme_use())
         except Exception:
             pass
+        style.configure("Input.TEntry", foreground="#111111")
+        style.configure("Placeholder.TEntry", foreground="#888888")
 
         master.grid_rowconfigure(0, weight=1)
         master.grid_columnconfigure(0, weight=1)
@@ -147,6 +149,10 @@ class AccelLoggerGUI:
         self._run_dir = None
         self._part_rows_written = 0
         self._current_part_start = None
+        self._placeholder_map = {}
+        self._placeholder_active = set()
+
+        self._setup_placeholders()
 
         # Close handler
         self.master.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -169,6 +175,46 @@ class AccelLoggerGUI:
         if len(value) > max_len:
             return f"{label} must be {max_len} characters or fewer."
         return None
+
+    def _setup_placeholders(self):
+        self._placeholder_map = {
+            self.platform_entry: ("platform", "e.g. Zantiks"),
+            self.speed_entry: ("speed", "e.g. R85C10AD x R64H06DBD G4 motor P150,400,2000"),
+            self.duration_entry: ("duration", "e.g. 72"),
+        }
+        for entry, (_field, placeholder) in self._placeholder_map.items():
+            entry.configure(style="Input.TEntry")
+            self._set_entry_placeholder(entry, placeholder)
+            entry.bind("<FocusIn>", self._on_entry_focus_in, add="+")
+            entry.bind("<FocusOut>", self._on_entry_focus_out, add="+")
+
+    def _set_entry_placeholder(self, entry, placeholder):
+        if entry not in self._placeholder_active and not entry.get().strip():
+            entry.delete(0, tk.END)
+            entry.insert(0, placeholder)
+            entry.configure(style="Placeholder.TEntry")
+            self._placeholder_active.add(entry)
+
+    def _clear_entry_placeholder(self, entry):
+        if entry in self._placeholder_active:
+            entry.delete(0, tk.END)
+            entry.configure(style="Input.TEntry")
+            self._placeholder_active.discard(entry)
+
+    def _on_entry_focus_in(self, event):
+        self._clear_entry_placeholder(event.widget)
+
+    def _on_entry_focus_out(self, event):
+        info = self._placeholder_map.get(event.widget)
+        if not info:
+            return
+        _field, placeholder = info
+        self._set_entry_placeholder(event.widget, placeholder)
+
+    def _get_clean_entry_value(self, entry):
+        if entry in self._placeholder_active:
+            return ""
+        return entry.get().strip()
 
     def _update_ui_periodic(self):
         try:
@@ -448,19 +494,20 @@ class AccelLoggerGUI:
             return True
 
     def start_logging(self):
-        platform = self.platform_entry.get().strip()
-        speed = self.speed_entry.get().strip()
+        platform = self._get_clean_entry_value(self.platform_entry)
+        speed = self._get_clean_entry_value(self.speed_entry)
+        duration_text = self._get_clean_entry_value(self.duration_entry)
         for field_name, label, value in (
             ("platform", "Platform Name", platform),
             ("speed", "Experiment setting", speed),
-            ("duration", "Logging Duration", self.duration_entry.get().strip()),
+            ("duration", "Logging Duration", duration_text),
         ):
             validation_error = self._validate_field_constraints(value, field_name, label)
             if validation_error:
                 messagebox.showerror("Invalid Input", validation_error)
                 return
         try:
-            duration_hours = float(self.duration_entry.get().strip())
+            duration_hours = float(duration_text)
             if not math.isfinite(duration_hours) or duration_hours < 0:
                 raise ValueError
             duration = duration_hours * 3600.0
