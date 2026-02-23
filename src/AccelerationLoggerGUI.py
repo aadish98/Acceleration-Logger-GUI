@@ -178,9 +178,9 @@ class AccelLoggerGUI:
 
     def _setup_placeholders(self):
         self._placeholder_map = {
-            self.platform_entry: ("platform", "e.g. Zantiks"),
-            self.speed_entry: ("speed", "e.g. R85C10AD x R64H06DBD G4 motor P150,400,2000"),
-            self.duration_entry: ("duration", "e.g. 72"),
+            self.platform_entry: ("platform", "Zantiks"),
+            self.speed_entry: ("speed", "R85C10AD x R64H06DBD G4 motor P150,400,2000"),
+            self.duration_entry: ("duration", "72"),
         }
         for entry, (_field, placeholder) in self._placeholder_map.items():
             entry.configure(style="Input.TEntry")

@@ -36,7 +36,7 @@ python -m pip install -r requirements.txt
 
 1. Install GitHub Desktop and sign in.
 2. In GitHub Desktop, clone this repository to your laptop.
-3. In GitHub Desktop, use `Repository` -> `Open in Command Prompt`.
+3. In GitHub Desktop, use `Repository` -> `Open in Command Prompt` (if prompted, choose `Open without Git`).
 4. Install dependencies:
    - `py -m pip install -r requirements.txt`
    - `py -m pip install pyinstaller`
@@ -46,9 +46,30 @@ python -m pip install -r requirements.txt
 
 To update later:
 1. In GitHub Desktop, click `Fetch origin`, then `Pull origin`.
-2. Open Command Prompt in the repo and re-run:
+2. In GitHub Desktop, use `Repository` -> `Open in Command Prompt` (if prompted, choose `Open without Git`).
+3. Re-run:
    - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
-3. Launch the newest versioned executable in `dist/`.
+4. Launch the newest versioned executable in `dist/`.
+
+## Installing / Updating on Windows (Git)
+
+1. Clone this repository:
+   - `git clone https://github.com/aadish98/Acceleration-Logger-GUI.git`
+   - `cd Acceleration-Logger-GUI`
+2. Install dependencies:
+   - `py -m pip install -r requirements.txt`
+   - `py -m pip install pyinstaller`
+3. Build the app:
+   - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
+4. Run the generated versioned executable from `dist/` (for example `Acceleration Logger v<version>.exe`).
+
+To update later:
+1. In Command Prompt, open the repo folder.
+2. Pull the latest changes:
+   - `git pull`
+3. Re-run:
+   - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
+4. Launch the newest versioned executable in `dist/`.
 
 ## Installing / Updating on macOS
 
