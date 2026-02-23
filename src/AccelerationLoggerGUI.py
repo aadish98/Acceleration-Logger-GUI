@@ -151,6 +151,7 @@ class AccelLoggerGUI:
         self._current_part_start = None
         self._placeholder_map = {}
         self._placeholder_active = set()
+        self._base_data_dir = os.path.join(os.path.expanduser("~"), "Desktop", "ARDUINO_AcclLogs")
 
         self._setup_placeholders()
 
@@ -278,6 +279,69 @@ class AccelLoggerGUI:
             "About",
             f"{APP_DISPLAY_NAME}\nVersion: {APP_VERSION}",
         )
+
+    def _open_folder_path(self, folder_path):
+        try:
+            system = platform.system()
+            if system == "Windows":
+                os.startfile(folder_path)
+            elif system == "Darwin":
+                subprocess.Popen(["open", folder_path])
+            else:
+                subprocess.Popen(["xdg-open", folder_path])
+        except Exception:
+            # Keep failure silent by design.
+            pass
+
+    def _show_logging_stopped_dialog(self, run_dir, parent_dir):
+        try:
+            if not self.master.winfo_exists():
+                return
+        except Exception:
+            return
+
+        dialog = tk.Toplevel(self.master)
+        dialog.title("Logging Stopped")
+        dialog.transient(self.master)
+        dialog.resizable(False, False)
+        dialog.grab_set()
+
+        body = ttk.Frame(dialog, padding=(14, 12))
+        body.grid(row=0, column=0, sticky="nsew")
+
+        ttk.Label(
+            body,
+            text=f"Logging stopped.\nRun folder: {run_dir}",
+            justify="left",
+        ).grid(row=0, column=0, columnspan=2, sticky="w")
+
+        open_button = ttk.Button(body, text="Open folder", command=lambda: self._open_folder_path(parent_dir))
+        open_button.grid(row=1, column=0, padx=(0, 8), pady=(12, 0), sticky="w")
+        ttk.Button(body, text="Close", command=dialog.destroy).grid(row=1, column=1, pady=(12, 0), sticky="e")
+
+        try:
+            dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+            dialog.focus_force()
+            open_button.focus_set()
+        except Exception:
+            pass
+
+    def _format_human_run_folder_name(self, dt):
+        hour_12 = dt.hour % 12 or 12
+        minute = dt.minute
+        am_pm = dt.strftime("%p").lower()
+        return f"{dt.strftime('%m-%d-%Y')} T-{hour_12}.{minute:02d}{am_pm}"
+
+    def _create_unique_run_dir(self, base_dir, base_name):
+        candidate = os.path.join(base_dir, base_name)
+        if not os.path.exists(candidate):
+            return candidate
+        suffix = 2
+        while True:
+            candidate = os.path.join(base_dir, f"{base_name}-{suffix}")
+            if not os.path.exists(candidate):
+                return candidate
+            suffix += 1
 
     # -------------------------- Manifest helpers --------------------------
     def _write_manifest_atomic(self):
@@ -567,9 +631,9 @@ class AccelLoggerGUI:
 
         # Prepare run directories and manifest
         start_dt = datetime.now().astimezone()
-        start_timestamp_compact = start_dt.strftime("%y%m%d%H%M%S")  # yymmddHHMMSS for folder id
-        base_dir = os.path.join(os.path.expanduser("~"), "Desktop", "ARDUINO_AcclLogs")
-        run_dir = os.path.join(base_dir, start_timestamp_compact)
+        base_dir = self._base_data_dir
+        run_folder_name = self._format_human_run_folder_name(start_dt)
+        run_dir = self._create_unique_run_dir(base_dir, run_folder_name)
         os.makedirs(run_dir, exist_ok=True)
         self._run_dir = run_dir
 
@@ -725,7 +789,7 @@ class AccelLoggerGUI:
         # Notify UI
         final_msg = f"Logging stopped. Run folder: {run_dir}"
         print(final_msg)
-        self.master.after(0, lambda: messagebox.showinfo("Logging Stopped", final_msg))
+        self.master.after(0, lambda: self._show_logging_stopped_dialog(run_dir, base_dir))
         self.master.after(0, lambda: self.start_button.config(state=tk.NORMAL))
         self.master.after(0, lambda: self.stop_button.config(state=tk.DISABLED))
 
