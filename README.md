@@ -34,7 +34,7 @@ python -m pip install -r requirements.txt
 
 ## Installing / Updating on Windows (GitHub Desktop)
 
-1. Install GitHub Desktop and sign in.
+1. Install GitHub Desktop.
 2. In GitHub Desktop, clone this repository to your laptop.
 3. In GitHub Desktop, use `Repository` -> `Open in Command Prompt` (if prompted, choose `Open without Git`).
 4. Install dependencies:
