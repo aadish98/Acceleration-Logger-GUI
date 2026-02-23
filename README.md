@@ -2,6 +2,10 @@
 
 A desktop Tkinter GUI for logging Arduino accelerometer-style analog streams to CSV with run metadata, file rotation, and manifest tracking.
 
+System setup schema:
+
+![System setup schema](docs/images/setup-schema.png)
+
 ## Features
 
 - Metadata-driven logging UI (platform, experiment setting, duration) with live preview and run stats.
