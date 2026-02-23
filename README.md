@@ -49,7 +49,7 @@ To update later:
 2. In GitHub Desktop, use `Repository` -> `Open in Command Prompt` (if prompted, choose `Open without Git`).
 3. Re-run:
    - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
-4. Launch the newest versioned executable in `dist/`.
+4. In GitHub Desktop, use `Repository` -> `Show in Explorer`, open the `dist` folder, and launch the newest versioned executable (for example `Acceleration Logger v<version>.exe`).
 
 ## Installing / Updating on Windows (Git)
 
