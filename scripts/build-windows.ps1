@@ -22,6 +22,28 @@ py -c "from PIL import Image; p=r'Build/app.ico'; im=Image.open(p).convert('RGBA
 $version = py -c "namespace={}; exec(open('src/version.py', encoding='utf-8').read(), namespace); print(namespace['APP_VERSION'])"
 $env:APP_VERSION = $version
 
-py -m PyInstaller --noconfirm --clean --workpath "build" --distpath "dist" "Build/AccelerationLoggerGUI.spec"
+# Cleanup old in-repo PyInstaller work dir if present from earlier script versions.
+$legacyWorkPath = Join-Path $repoRoot "Build\AccelerationLoggerGUI"
+if (Test-Path $legacyWorkPath) {
+    try {
+        Remove-Item -Recurse -Force $legacyWorkPath -ErrorAction Stop
+    } catch {
+        Write-Host "Warning: could not remove legacy workpath $legacyWorkPath (continuing)"
+    }
+}
+
+# Use a fresh temp workpath each run to avoid Windows file-lock cleanup failures
+# in stale localpycs folders from prior builds.
+$workPath = Join-Path $env:TEMP ("AccelerationLoggerGUI-pyinstaller-" + [Guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $workPath | Out-Null
+
+py -m PyInstaller --noconfirm --workpath $workPath --distpath "dist" "Build/AccelerationLoggerGUI.spec"
+
+# Cleanup is best-effort only; build output is already in dist/.
+try {
+    Remove-Item -Recurse -Force $workPath -ErrorAction Stop
+} catch {
+    Write-Host "Warning: could not remove temp workpath $workPath"
+}
 
 Write-Host "Built Windows artifact in dist/: Acceleration Logger v$version.exe"
