@@ -15,7 +15,9 @@ dist/
 *.spec.bak
 *.egg-info/
 !Build/
+Build/*/
 !Build/*.spec
+!Build/*.ico
 
 # OS/editor
 .DS_Store
