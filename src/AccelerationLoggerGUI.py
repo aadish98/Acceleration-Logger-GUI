@@ -221,7 +221,7 @@ class AccelLoggerGUI:
         try:
             # Progress/elapsed
             if self._start_time:
-                elapsed = int(time.time() - self._start_time)
+                elapsed = int(time.monotonic() - self._start_time)
             else:
                 elapsed = 0
             if self._target_duration and self._target_duration > 0:
@@ -237,7 +237,7 @@ class AccelLoggerGUI:
 
             # Actual average rate since start (Hz)
             if self._start_time:
-                elapsed_real = max(time.time() - self._start_time, 1e-9)
+                elapsed_real = max(time.monotonic() - self._start_time, 1e-9)
                 rate_hz = self._samples_total / elapsed_real
             else:
                 rate_hz = 0.0
@@ -450,10 +450,10 @@ class AccelLoggerGUI:
         self._current_file = open(self._current_file_path, mode='w', newline='')
         self._current_writer = csv.writer(self._current_file)
         # Write header
-        self._current_writer.writerow(["ts_local", "sample", "X", "Y", "Z"])
+        self._current_writer.writerow(["t_ms", "sample", "X", "Y", "Z"])
         self._row_since_flush = 0
         self._part_rows_written = 0
-        self._current_part_start = time.time()
+        self._current_part_start = time.monotonic()
 
         # Update manifest with new part
         self._manifest["parts"].append({
@@ -643,6 +643,8 @@ class AccelLoggerGUI:
             "platform": platform,
             "speed": speed,
             "start_iso": start_dt.isoformat(),
+            "start_epoch_ms": int(start_dt.timestamp() * 1000),
+            "timestamp_mode": "t_ms_since_start",
             "target_duration_s": int(round(duration)),
             "compress_gzip": True,
             "serial_port": used_port,
@@ -656,16 +658,16 @@ class AccelLoggerGUI:
         self._sleep_inhibit_start()
 
         # Initialize runtime state
-        self._start_time = time.time()
+        self._start_time = time.monotonic()
         self._target_duration = duration
         self._samples_total = 0
         self._dropped_total = 0
         self._reconnects_total = 0
-        last_data_time = time.time()
-        last_flush_time = time.time()
-        last_manifest_time = time.time()
+        last_data_time = self._start_time
+        last_flush_time = self._start_time
+        last_manifest_time = self._start_time
         rotation_minutes = 60  # rotate files hourly (and on date change)
-        self._current_part_start = time.time()
+        self._current_part_start = self._start_time
         self._current_date_str = datetime.now().strftime("%m%d%Y")
         self._part_index = 0
 
@@ -682,7 +684,7 @@ class AccelLoggerGUI:
                             time.sleep(5.0)
                             continue
                     line = ser.readline().decode('utf-8', errors='ignore').strip()
-                    now = time.time()
+                    now = time.monotonic()
                     # Watchdog: if no data for >5s, attempt reconnect
                     if not line:
                         if now - last_data_time > 5.0:
@@ -737,25 +739,27 @@ class AccelLoggerGUI:
                     if need_new_part:
                         self._open_new_part(run_dir, platform, speed)
 
-                    ts_local = datetime.now().astimezone().isoformat()
-                    # Write row with local timestamp
-                    self._current_writer.writerow([ts_local, sample_index, x, y, z])
+                    elapsed_ms = int((now - self._start_time) * 1000)
+                    if elapsed_ms < 0:
+                        # Monotonic clocks should not go backwards, but guard anyway.
+                        elapsed_ms = 0
+                    self._current_writer.writerow([elapsed_ms, sample_index, x, y, z])
                     self._row_since_flush += 1
                     self._part_rows_written += 1
 
                     # Update preview buffer
                     with self._buf_lock:
-                        self._preview_buffer.append((ts_local, x, y, z))
+                        self._preview_buffer.append((f"{elapsed_ms} ms", x, y, z))
 
                     # Periodic flush
-                    if self._row_since_flush >= 200 or (time.time() - last_flush_time) > 5.0:
+                    if self._row_since_flush >= 200 or (now - last_flush_time) > 5.0:
                         self._flush_current_file()
-                        last_flush_time = time.time()
+                        last_flush_time = now
 
                     # Periodically persist manifest
-                    if time.time() - last_manifest_time > 60.0:
+                    if now - last_manifest_time > 60.0:
                         self._write_manifest_atomic()
-                        last_manifest_time = time.time()
+                        last_manifest_time = now
 
                     # Disk space monitoring
                     if not self._check_disk_space(base_dir):
@@ -763,7 +767,7 @@ class AccelLoggerGUI:
                         break
 
                     # Stop logging if the set duration has passed
-                    if self._target_duration > 0 and (time.time() - self._start_time) >= self._target_duration:
+                    if self._target_duration > 0 and (now - self._start_time) >= self._target_duration:
                         break
                 except serial.SerialException as e:
                     self._log_event("serial_exception", {"error": str(e)[:200]})

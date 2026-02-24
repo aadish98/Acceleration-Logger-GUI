@@ -2,27 +2,25 @@
 
 A desktop Tkinter GUI for logging Arduino accelerometer-style analog streams to CSV with run metadata, file rotation, and manifest tracking.
 
+## Features
+
+- Guided acceleration logging UI for run metadata, duration, live preview, and real-time stats.
+- Reliable serial capture from common Arduino/CH340 ports at 115200 baud with reconnect handling.
+- Long-run friendly output: rotated CSV parts, per-run `manifest.json`, and gzip-compressed archives.
+
+## System Setup
+
 System setup schema:
 
 ![System setup schema](docs/images/setup-schema.png)
 
-## Features
-
-- Metadata-driven logging UI (platform, experiment setting, duration) with live preview and run stats.
-- Auto-detects common Arduino serial ports and logs at 115200 baud.
-- Rotating CSV output with manifest tracking and gzip compression.
-
-## Data Format and Output
-
-- Serial input format: `x,y,z` integers.
-- Output folder: `~/Desktop/ARDUINO_AcclLogs/<run_id>/`.
-- Each run writes rotated CSV part files plus a `manifest.json` containing metadata, checksums, and events.
-
 ## Requirements
 
+### Software
+
+- macOS or Windows
 - Python 3.10+
-- `pyserial>=3.5`
-- Arduino-compatible board streaming CSV analog values
+- Python package: `pyserial>=3.5`
 
 Install dependencies:
 
@@ -30,14 +28,24 @@ Install dependencies:
 python -m pip install -r requirements.txt
 ```
 
+### Hardware
+
+- Arduino Micro
+- ADXL335 accelerometer
+- Breadboard jumper wires/cables
+- (Optional, though recommended) 3M 300LSE Double Sided Tape
+
 ## Arduino Firmware
 
 1. Open `firmware/ACCL_logger_Arduino.ino` in Arduino IDE.
 2. Upload to your board.
 3. Confirm it streams comma-separated values at 115200 baud.
 
-## Installing / Updating on Windows (GitHub Desktop)
+## Installation and Updates
 
+### Windows (GitHub Desktop)
+
+Install:
 1. Install GitHub Desktop.
 2. In GitHub Desktop, clone this repository to your laptop.
 3. In GitHub Desktop, use `Repository` -> `Open in Command Prompt` (if prompted, choose `Open without Git`).
@@ -48,15 +56,16 @@ python -m pip install -r requirements.txt
    - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
 6. Run the generated versioned executable from `dist/` (for example `Acceleration Logger v<version>.exe`).
 
-To update later:
+Update later:
 1. In GitHub Desktop, click `Fetch origin`, then `Pull origin`.
 2. In GitHub Desktop, use `Repository` -> `Open in Command Prompt` (if prompted, choose `Open without Git`).
 3. Re-run:
    - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
 4. In GitHub Desktop, use `Repository` -> `Show in Explorer`, open the `dist` folder, and launch the newest versioned executable (for example `Acceleration Logger v<version>.exe`).
 
-## Installing / Updating on Windows (Git)
+### Windows (Git)
 
+Install:
 1. Clone this repository:
    - `git clone https://github.com/aadish98/Acceleration-Logger-GUI.git`
    - `cd Acceleration-Logger-GUI`
@@ -67,7 +76,7 @@ To update later:
    - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
 4. Run the generated versioned executable from `dist/` (for example `Acceleration Logger v<version>.exe`).
 
-To update later:
+Update later:
 1. In Command Prompt, open the repo folder.
 2. Pull the latest changes:
    - `git pull`
@@ -75,8 +84,9 @@ To update later:
    - `powershell -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1`
 4. Launch the newest versioned executable in `dist/`.
 
-## Installing / Updating on macOS
+### macOS
 
+Install:
 1. Clone this repository to your Mac (GitHub Desktop or `git clone`).
 2. Open Terminal in the repo folder.
 3. Install dependencies:
@@ -86,10 +96,18 @@ To update later:
    - `./scripts/build-macos.sh`
 5. Open the generated versioned app in `dist/` (for example `Acceleration Logger v<version>.app`).
 
-To update later:
+Update later:
 1. Pull the latest repository changes.
 2. Re-run `./scripts/build-macos.sh`.
 3. Open the newest versioned app in `dist/`.
+
+## Data Format and Output
+
+- Serial input format: `x,y,z` integers.
+- Output folder: `~/Desktop/ARDUINO_AcclLogs/<run_id>/`.
+- Each run writes rotated CSV part files plus a `manifest.json` containing metadata, checksums, and events.
+- CSV timestamp column: `t_ms` (elapsed milliseconds since run start).
+- Reconstruct local sample time with `sample_time = parse(start_iso) + timedelta(milliseconds=t_ms)` where `start_iso` is from `manifest.json`.
 
 ## Hardware Notes
 
@@ -121,10 +139,6 @@ Reference setup photos:
 ![Arduino Micro wiring reference](docs/images/arduino-micro-wiring.png)
 ![ADXL335 mounted on plate](docs/images/adxl335-mounted-setup.png)
 
-## References
-
-1. Titos I, Juginovic A, Vaccaro A, Nambara K, Gorelik P, Mazor O, Rogulja D. A gut-secreted peptide suppresses arousability from sleep. Cell. 2023 Mar 30;186(7):1382-1397.e21. doi:10.1016/j.cell.2023.02.022. PMID:36958331. https://www.sciencedirect.com/science/article/pii/S0092867423001654?via%3Dihub
-
 ## Reporting Issues
 
 When filing an issue, include:
@@ -133,6 +147,10 @@ When filing an issue, include:
 - Board model and serial adapter type (if known)
 - A sample of serial output
 - Steps to reproduce and expected vs actual behavior
+
+## References
+
+1. Titos I, Juginovic A, Vaccaro A, Nambara K, Gorelik P, Mazor O, Rogulja D. A gut-secreted peptide suppresses arousability from sleep. Cell. 2023 Mar 30;186(7):1382-1397.e21. doi:10.1016/j.cell.2023.02.022. PMID:36958331. https://www.sciencedirect.com/science/article/pii/S0092867423001654?via%3Dihub
 
 ## License
 
