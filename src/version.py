@@ -1,3 +1,3 @@
 APP_NAME = "Acceleration Logger"
-APP_VERSION = "3"
+APP_VERSION = "3.1"
 APP_DISPLAY_NAME = f"{APP_NAME} v{APP_VERSION}"

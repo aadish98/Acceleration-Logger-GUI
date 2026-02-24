@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-import threading, time, csv, os, json, hashlib, gzip, shutil, subprocess, platform, ctypes
+import threading, time, csv, os, sys, json, hashlib, gzip, shutil, subprocess, platform, ctypes
 import math
 from datetime import datetime
 from collections import deque
@@ -9,6 +9,27 @@ import serial
 import serial.tools.list_ports
 
 from version import APP_DISPLAY_NAME, APP_VERSION
+
+
+def _apply_window_icon(window):
+    """Best-effort app icon setup for local runs and PyInstaller bundles."""
+    candidate_paths = []
+    script_dir = os.path.abspath(os.path.dirname(__file__))
+    candidate_paths.append(os.path.abspath(os.path.join(script_dir, "..", "Build", "app.ico")))
+    candidate_paths.append(os.path.abspath(os.path.join(script_dir, "Build", "app.ico")))
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            candidate_paths.insert(0, os.path.join(meipass, "app.ico"))
+
+    for icon_path in candidate_paths:
+        if not os.path.exists(icon_path):
+            continue
+        try:
+            window.iconbitmap(default=icon_path)
+            return
+        except Exception:
+            continue
 
 def find_arduino_port():
     """
@@ -29,6 +50,7 @@ class AccelLoggerGUI:
         self.master = master
         master.title(APP_DISPLAY_NAME)
         master.minsize(860, 540)
+        _apply_window_icon(master)
         self._forbidden_input_chars = {":", "*", "?", "<", ">", "|", "\\", "/"}
         self._input_max_lengths = {
             "platform": 64,

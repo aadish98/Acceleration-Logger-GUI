@@ -25,12 +25,13 @@ APP_VERSION = os.environ.get("APP_VERSION", _read_app_version())
 APP_BUILD_NAME = f"Acceleration Logger v{APP_VERSION}"
 APP_ICON = _resolve_repo_root() / "Build" / "app.ico"
 APP_ICON = str(APP_ICON) if APP_ICON.exists() else None
+APP_ICON_DATA = [(APP_ICON, ".")] if APP_ICON else []
 
 a = Analysis(
     ['../src/AccelerationLoggerGUI.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=APP_ICON_DATA,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
