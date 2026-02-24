@@ -14,10 +14,9 @@ build/
 dist/
 *.spec.bak
 *.egg-info/
-!Build/
-Build/*/
-!Build/*.spec
-!Build/*.ico
+Build/*
+!Build/AccelerationLoggerGUI.spec
+!Build/app.ico
 
 # OS/editor
 .DS_Store
