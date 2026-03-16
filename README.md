@@ -2,6 +2,8 @@
 
 A desktop Tkinter GUI for logging Arduino accelerometer-style analog streams to CSV with run metadata, file rotation, and manifest tracking.
 
+To analyze data generated, see https://github.com/aadish98/FlySWATTER/
+
 ## Features
 
 - Guided acceleration logging UI for run metadata, duration, live preview, and real-time stats.
