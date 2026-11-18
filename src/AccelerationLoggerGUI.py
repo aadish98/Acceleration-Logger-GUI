@@ -45,6 +45,20 @@ def find_arduino_port():
             return port.device
     return None
 
+
+def _open_serial(port):
+    """Open the board's port with a receive buffer large enough to ride out
+    brief stalls on the reader thread (file rotation, disk flushes)."""
+    ser = serial.Serial(port, 115200, timeout=1)
+    try:
+        # Windows-only in pyserial; the default 4 KB holds well under a second
+        # of samples at this data rate.
+        ser.set_buffer_size(rx_size=1 << 20)
+    except Exception:
+        pass
+    return ser
+
+
 class AccelLoggerGUI:
     def __init__(self, master):
         self.master = master
@@ -159,6 +173,11 @@ class AccelLoggerGUI:
         self._buf_lock = threading.Lock()
         self._manifest_path = None
         self._manifest = None
+        # The manifest is edited by the reader thread and by the background
+        # threads that compress finished parts, so every edit and every dump
+        # goes through this lock.
+        self._manifest_lock = threading.RLock()
+        self._finalize_threads = []
         self._sleep_inhibit_handle = None
         self._sleep_keepalive_thread = None
         self._sleep_keepalive_stop = None
@@ -371,9 +390,10 @@ class AccelLoggerGUI:
             return
         tmp_path = self._manifest_path + ".tmp"
         try:
-            with open(tmp_path, 'w') as f:
-                json.dump(self._manifest, f, indent=2)
-            os.replace(tmp_path, self._manifest_path)
+            with self._manifest_lock:
+                with open(tmp_path, 'w') as f:
+                    json.dump(self._manifest, f, indent=2)
+                os.replace(tmp_path, self._manifest_path)
         except Exception:
             # Non-fatal
             pass
@@ -381,10 +401,11 @@ class AccelLoggerGUI:
     def _log_event(self, kind, payload):
         event = {"ts": datetime.now().astimezone().isoformat(), "event": kind, "data": payload}
         try:
-            self._manifest["events"].append(event)
-            # Keep manifest from growing unbounded in memory
-            if len(self._manifest["events"]) > 10000:
-                self._manifest["events"] = self._manifest["events"][-5000:]
+            with self._manifest_lock:
+                self._manifest["events"].append(event)
+                # Keep manifest from growing unbounded in memory
+                if len(self._manifest["events"]) > 10000:
+                    self._manifest["events"] = self._manifest["events"][-5000:]
         except Exception:
             pass
 
@@ -478,13 +499,14 @@ class AccelLoggerGUI:
         self._current_part_start = time.monotonic()
 
         # Update manifest with new part
-        self._manifest["parts"].append({
-            "path": os.path.relpath(self._current_file_path, start=run_dir),
-            "created_iso": datetime.now().astimezone().isoformat(),
-            "rows": 0,
-            "sha256": None,
-            "compressed": False,
-        })
+        with self._manifest_lock:
+            self._manifest["parts"].append({
+                "path": os.path.relpath(self._current_file_path, start=run_dir),
+                "created_iso": datetime.now().astimezone().isoformat(),
+                "rows": 0,
+                "sha256": None,
+                "compressed": False,
+            })
         self._write_manifest_atomic()
 
     def _flush_current_file(self):
@@ -497,51 +519,87 @@ class AccelLoggerGUI:
             self._row_since_flush = 0
 
     def _close_current_part(self):
+        """Close the part file and hand its compression to a background thread.
+
+        This runs on the serial reader thread, so it must return quickly: for
+        as long as it blocks, nothing is read from the port and samples are
+        lost. Compressing and hashing an hour-long part takes tens of seconds,
+        which is why that work is done in `_finalize_part` instead.
+        """
         if not self._current_file_path or not self._current_file:
             return
+        path = self._current_file_path
+        part_entry = None
         try:
-            # finalize rows count
-            try:
+            with self._manifest_lock:
                 if self._manifest and self._manifest.get("parts"):
-                    self._manifest["parts"][-1]["rows"] = self._part_rows_written
-            except Exception:
-                pass
+                    part_entry = self._manifest["parts"][-1]
+                    part_entry["rows"] = self._part_rows_written
+        except Exception:
+            part_entry = None
 
+        try:
             self._current_file.flush()
             os.fsync(self._current_file.fileno())
             self._current_file.close()
-
-            # Compute checksum
-            sha = hashlib.sha256()
-            with open(self._current_file_path, 'rb') as rf:
-                for chunk in iter(lambda: rf.read(1024 * 1024), b''):
-                    sha.update(chunk)
-            checksum = sha.hexdigest()
-            if self._manifest and self._manifest.get("parts"):
-                self._manifest["parts"][-1]["sha256"] = checksum
-
-            gz_path = self._current_file_path + '.gz'
-            with open(self._current_file_path, 'rb') as f_in, gzip.open(gz_path, 'wb') as f_out:
-                shutil.copyfileobj(f_in, f_out)
-            try:
-                os.remove(self._current_file_path)
-            except Exception:
-                pass
-            self._current_file_path = gz_path
-            if self._manifest and self._manifest.get("parts"):
-                self._manifest["parts"][-1]["path"] = os.path.relpath(self._current_file_path, start=self._run_dir)
-                self._manifest["parts"][-1]["compressed"] = True
-                # recompute checksum on gz
-                sha = hashlib.sha256()
-                with open(self._current_file_path, 'rb') as rf:
-                    for chunk in iter(lambda: rf.read(1024*1024), b''):
-                        sha.update(chunk)
-                self._manifest["parts"][-1]["sha256"] = sha.hexdigest()
-
+        except Exception as e:
+            self._log_event("part_close_failed", {"path": os.path.basename(path), "error": str(e)[:120]})
         finally:
             self._current_file = None
             self._current_writer = None
+            self._current_file_path = None
+
+        worker = threading.Thread(
+            target=self._finalize_part,
+            args=(path, part_entry),
+            name=f"FinalizePart-{os.path.basename(path)}",
+            daemon=True,
+        )
+        self._finalize_threads.append(worker)
+        worker.start()
+
+    def _finalize_part(self, path, part_entry):
+        """Gzip a finished part and record its checksum. Runs off the reader thread.
+
+        The manifest keeps pointing at the plain CSV until the gzip is complete
+        and recorded, so a crash mid-way never leaves the manifest naming a
+        file that does not exist.
+        """
+        try:
+            gz_path = path + '.gz'
+            with open(path, 'rb') as f_in, gzip.open(gz_path, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out, 1024 * 1024)
+
+            sha = hashlib.sha256()
+            with open(gz_path, 'rb') as rf:
+                for chunk in iter(lambda: rf.read(1024 * 1024), b''):
+                    sha.update(chunk)
+
+            if part_entry is not None:
+                with self._manifest_lock:
+                    part_entry["path"] = os.path.relpath(gz_path, start=self._run_dir)
+                    part_entry["compressed"] = True
+                    part_entry["sha256"] = sha.hexdigest()
+                self._write_manifest_atomic()
+
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+        except Exception as e:
+            # Leave the plain CSV in place; the manifest still points at it.
+            self._log_event("part_finalize_failed", {"path": os.path.basename(path), "error": str(e)[:120]})
             self._write_manifest_atomic()
+
+    def _wait_for_finalize_threads(self, timeout_s=600.0):
+        """Block until background compression has finished (or timed out)."""
+        deadline = time.monotonic() + timeout_s
+        for worker in list(self._finalize_threads):
+            remaining = max(0.0, deadline - time.monotonic())
+            worker.join(timeout=remaining)
+            if worker.is_alive():
+                self._log_event("part_finalize_timeout", {"thread": worker.name})
+        self._finalize_threads = [w for w in self._finalize_threads if w.is_alive()]
     # -------------------------- Serial reconnection --------------------------
     def _attempt_reconnect(self, ser):
         try:
@@ -556,7 +614,7 @@ class AccelLoggerGUI:
                 port = find_arduino_port()
                 if port:
                     try:
-                        new_ser = serial.Serial(port, 115200, timeout=1)
+                        new_ser = _open_serial(port)
                         time.sleep(2)
                         self._log_event("reconnected", {"port": port})
                         return new_ser
@@ -643,7 +701,7 @@ class AccelLoggerGUI:
                 self.master.after(0, lambda: self.start_button.config(state=tk.NORMAL))
                 return
 
-            ser = serial.Serial(auto_port, 115200, timeout=1)
+            ser = _open_serial(auto_port)
         except serial.SerialException as e:
             self.master.after(0, lambda: messagebox.showerror("Serial Error", f"Error opening serial port: {e}"))
             self.master.after(0, lambda: self.start_button.config(state=tk.NORMAL))
@@ -760,6 +818,9 @@ class AccelLoggerGUI:
 
                     if need_new_part:
                         self._open_new_part(run_dir, platform, speed)
+                        # Re-read the clock so the first row of the new part is
+                        # not stamped with the time before the rotation.
+                        now = time.monotonic()
 
                     elapsed_ms = int((now - self._start_time) * 1000)
                     if elapsed_ms < 0:
@@ -805,10 +866,12 @@ class AccelLoggerGUI:
                 ser.close()
             except Exception:
                 pass
-            # Close file and finalize manifest
+            # Close file, let background compression finish, then finalize manifest
             self._close_current_part()
             self._sleep_inhibit_stop()
-            self._manifest["end_iso"] = datetime.now().astimezone().isoformat()
+            self._wait_for_finalize_threads()
+            with self._manifest_lock:
+                self._manifest["end_iso"] = datetime.now().astimezone().isoformat()
             self._write_manifest_atomic()
             self.master.after(0, self.progress_bar.stop)
 
